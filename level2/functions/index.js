@@ -24,7 +24,8 @@ const {
 
 // Import the firebase-functions package for deployment.
 const functions = require('firebase-functions');
-
+const URL = 'https://time4action.herokuapp.com/api/';
+const fetch = require('isomorphic-fetch');
 // Instantiate the Dialogflow client.
 const app = dialogflow({ debug: true });
 
@@ -42,11 +43,29 @@ app.intent('Symptoms', (conv, { symptoms }) => {
   const audioSound = 'https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg';
  
     console.log(symptoms);
-    conv.ask(`<speak>Your lucky number is ${symptoms}.` +
+    return fetch(URL + "/symptoms/" + symptoms)
+      .then((response) => {
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(response.statusText);
+        } else {
+          return response.json();
+        }
+      })
+      .then((json) => {
+        // Grab random quote data from JSON.
+        /*conv.close(new SimpleResponse({
+          text: json.symptoms[0]
+      }));*/
+      var count = Object.keys(json).length;
+      var res = ""
+      for(var i = 0; i < count; i++) {
+        res += json[i].name + ", " 
+      }
+      conv.ask(`<speak>Your symptoms are ${symptoms}.` +
       `<audio src="${audioSound}"></audio>` +
-      `Would you like to hear some fake colors?</speak>`);
-  
-})
+      `Your may be suffering from : ` + res + `</speak>`);
+    });
+});  
 
 app.intent('Diseases', (conv, { disease }) => {
   const luckyNumber = disease.length;
@@ -54,9 +73,29 @@ app.intent('Diseases', (conv, { disease }) => {
   const audioSound = 'https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg';
    
     console.log(disease);
-    conv.ask(`<speak>Your disease is ${disease}.` +
+    var d = disease[0].charAt(0).toUpperCase() + disease[0].slice(1)
+    return fetch(URL + "/disease/" + d)
+      .then((response) => {
+        if (response.status < 200 || response.status >= 300) {
+          throw new Error(response.statusText);
+        } else {
+          return response.json();
+        }
+      })
+      .then((json) => {
+        // Grab random quote data from JSON.
+        /*conv.close(new SimpleResponse({
+          text: json.symptoms[0]
+      }));*/
+      var count = Object.keys(json[0].symptoms).length;
+      var res = ""
+      for(var i = 0; i < count; i++) {
+        res += json[0].symptoms[i] + ", " 
+      }
+      conv.ask(`<speak>Your disease is ${disease}.` +
       `<audio src="${audioSound}"></audio>` +
-      `Would you like to hear some fake colors?</speak>`);
+      `Your may notice these symptoms : ` + res + `</speak>`);
+    });
   
 });
 
